@@ -125,7 +125,9 @@ class LedgerRepository:
         stmt = select(OutreachRow).order_by(OutreachRow.at.desc()).limit(limit)
         return list(self._db.scalars(stmt))
 
-    def recent_ai_notes(self, kind: str | None = None, limit: int = 50) -> list[AiNoteRow]:
+    def recent_ai_notes(
+        self, kind: str | None = None, limit: int = 50
+    ) -> list[AiNoteRow]:
         stmt = select(AiNoteRow).order_by(AiNoteRow.at.desc()).limit(limit)
         if kind:
             stmt = select(AiNoteRow).where(AiNoteRow.kind == kind).order_by(

@@ -24,7 +24,7 @@ import hashlib
 import hmac
 import random
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.core.config import Settings
 
@@ -103,7 +103,7 @@ class RazorpayClient:
         idempotency_key: str,
     ) -> PaymentLink:
         ttl = timedelta(minutes=self._s.recovery_link_ttl_minutes)
-        expires_at = datetime.now(timezone.utc) + ttl
+        expires_at = datetime.now(UTC) + ttl
         if self._mock:
             ref = f"plink_mock_{idempotency_key[-8:]}"
             return PaymentLink(

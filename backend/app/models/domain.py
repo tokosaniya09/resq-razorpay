@@ -11,14 +11,14 @@ unit-testable without spinning up a server or a database.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
 
 def utcnow() -> datetime:
     """Timezone-aware UTC now. Used everywhere so timestamps are consistent."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # --------------------------------------------------------------------------- #

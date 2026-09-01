@@ -29,6 +29,9 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# UP042 suggests enum.StrEnum, but (str, Enum) is intentional here: we rely on
+# .value for stable serialization and don't want StrEnum's different str().
+ignore = ["UP042"]
 
 [tool.black]
 line-length = 90

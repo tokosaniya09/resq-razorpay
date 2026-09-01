@@ -10,8 +10,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 
 from app.db.session import SessionLocal
-from app.services.ledger import metrics as metrics_mod
 from app.models.schemas import AskIn
+from app.services.ledger import metrics as metrics_mod
 from app.services.ledger.repository import LedgerRepository
 
 router = APIRouter()

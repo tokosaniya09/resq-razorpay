@@ -25,7 +25,7 @@ from collections import Counter, deque
 from dataclasses import dataclass
 
 from app.core.config import Settings
-from app.models.domain import PaymentEvent, RouteState, utcnow
+from app.models.domain import PaymentEvent, RouteState
 from app.services.classifier.service import classify
 from app.services.llm.client import LLMClient
 

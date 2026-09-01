@@ -134,7 +134,8 @@ class LedgerAssistant:
                 for r in snap["route_health"]
             ) or "no route data yet"
             return f"Current rail health: {rows}."
-        if any(w in q for w in ("rescue", "recover", "money", "rupee", "\u20b9", "amount")):
+        money_words = ("rescue", "recover", "money", "rupee", "\u20b9", "amount")
+        if any(w in q for w in money_words):
             return (
                 f"\u20b9{t['rupees_rescued']:,.0f} rescued across "
                 f"{t['payments_recovered']} recovered payments "

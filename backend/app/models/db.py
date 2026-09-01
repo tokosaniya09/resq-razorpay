@@ -99,5 +99,6 @@ class AiNoteRow(Base):
     route: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     ref_id: Mapped[str | None] = mapped_column(String, nullable=True)  # txn/event id
     body: Mapped[str] = mapped_column(String)
-    generated_by: Mapped[str] = mapped_column(String)      # "llm" | "heuristic" | "template"
+    # one of: "llm" | "heuristic" | "template"
+    generated_by: Mapped[str] = mapped_column(String)
     at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

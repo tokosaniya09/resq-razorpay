@@ -53,7 +53,8 @@ class Settings(BaseSettings):
     llm_provider: str = "gemini"               # "template" | "gemini" | "anthropic"
     llm_api_key: str | None = None
     llm_model: str = "gemini-2.0-flash"        # free tier via Google AI Studio
-    outreach_language: str = "en"              # "en" = template only (no LLM); e.g. "Hinglish" to translate
+    # "en" = template only (no LLM); set e.g. "Hinglish" to translate via LLM
+    outreach_language: str = "en"
 
     @property
     def retry_cooldown(self) -> int:
