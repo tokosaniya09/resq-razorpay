@@ -45,7 +45,15 @@ class LLMClient:
             log.warning("Unknown llm_provider '%s'; using fallback", self._s.llm_provider)
             return None
         except Exception as exc:  # noqa: BLE001 - best-effort by design
-            log.warning("LLM call failed (%s); falling back", exc.__class__.__name__)
+            # Full detail so a misconfigured key/model/dependency is diagnosable
+            # in the backend logs, while still falling back gracefully.
+            log.warning(
+                "LLM call failed (provider=%s model=%s): %r; falling back to "
+                "deterministic/template.",
+                self._s.llm_provider,
+                self._s.llm_model,
+                exc,
+            )
             return None
 
     # -- providers ---------------------------------------------------------- #
