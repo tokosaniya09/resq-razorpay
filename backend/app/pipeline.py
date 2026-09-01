@@ -135,43 +135,56 @@ class Pipeline:
 
     # --------------------------------------------------------------------- #
     def _maybe_drain(
-        self, route: str, health: HealthSnapshot, ledger: LedgerRepository
+        self, current_route: str, health: HealthSnapshot, ledger: LedgerRepository
     ) -> list[dict[str, Any]]:
-        """When a route returns to HEALTHY, re-attempt the payments we held
-        during its outage. Each re-attempt goes through the SAME guardrails
-        (idempotency + cap), so nothing can double-charge. Returns a frame per
-        drained payment so the dashboard can show ₹ recovered climbing."""
-        if health.state != RouteState.HEALTHY:
-            return []
-        queued = self._held.pop(route, [])
-        if not queued:
-            return []
+        """Re-attempt held payments for any rail that has recovered.
 
+        Two design points that make this actually work in a live stream:
+
+        * We check EVERY route that has a held queue on each event, not just
+          the route of the current event — otherwise a rail that recovered
+          would never drain if the next events happened to be for other rails.
+        * We drain once a rail is HEALTHY *or* RECOVERING. RECOVERING means the
+          failure rate has already dropped below the recovering threshold — the
+          rail is materially working again — so this matches the design doc's
+          "drain the hold queue gradually as it recovers" rather than waiting
+          for a full return to HEALTHY (which a short window may never reach).
+
+        Each re-attempt still goes through the SAME guardrails (idempotency +
+        cap), so nothing can double-charge.
+        """
         frames: list[dict[str, Any]] = []
-        for held_event in queued:
-            classification = classify(held_event)
-            # Decide again now that the route is healthy — this yields RETRY.
-            decision = self.policy.decide(
-                held_event, classification, RouteState.HEALTHY
-            )
-            if decision.action != Action.RETRY:
-                continue  # cap reached etc.; leave it alone, honestly
-            outcome = self.executors.retry(held_event, decision)
+        drainable = (RouteState.HEALTHY, RouteState.RECOVERING)
 
-            ledger.record_decision(decision)
-            ledger.record_outcome(outcome)
-            frames.append(
-                self._frame(
-                    held_event,
-                    classification,
-                    health,
-                    decision,
-                    outcome,
-                    None,
-                    drained=True,
+        for route in list(self._held.keys()):
+            if self.detector.state_of(route) not in drainable:
+                continue
+            queued = self._held.pop(route, [])
+            for held_event in queued:
+                classification = classify(held_event)
+                # Force the decision at HEALTHY: we've judged the rail recovered
+                # enough to re-attempt, so this yields a RETRY (not another hold).
+                decision = self.policy.decide(
+                    held_event, classification, RouteState.HEALTHY
                 )
-            )
-        ledger.commit()
+                if decision.action != Action.RETRY:
+                    continue  # cap reached etc.; leave it alone, honestly
+                outcome = self.executors.retry(held_event, decision)
+                ledger.record_decision(decision)
+                ledger.record_outcome(outcome)
+                frames.append(
+                    self._frame(
+                        held_event,
+                        classification,
+                        health,
+                        decision,
+                        outcome,
+                        None,
+                        drained=True,
+                    )
+                )
+        if frames:
+            ledger.commit()
         return frames
 
     # --------------------------------------------------------------------- #

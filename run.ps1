@@ -21,6 +21,6 @@ Start-Sleep -Seconds 6
 Write-Host "Streaming demo events (with an outage on UPI-SBI)..." -ForegroundColor Green
 cd "$root\backend"
 if (Test-Path .venv\Scripts\Activate.ps1) { .\.venv\Scripts\Activate.ps1 }
-python scripts/generate_events.py --count 90 --rate 5 --outage --outage-at 30 --outage-len 25 --seed 7
+python scripts/generate_events.py --count 140 --rate 5 --outage --outage-at 30 --outage-len 20 --seed 7
 
 Write-Host "`nOpen the dashboard at http://localhost:5173" -ForegroundColor Cyan

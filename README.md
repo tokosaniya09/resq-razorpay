@@ -52,7 +52,7 @@ npm run dev            # dashboard at http://localhost:5173
 
 # 3) Drive a demo  (in a third terminal)
 cd backend
-python scripts/generate_events.py --count 90 --rate 5 --outage --outage-at 30 --outage-len 25 --seed 7
+python scripts/generate_events.py --count 140 --rate 5 --outage --outage-at 30 --outage-len 20 --seed 7
 ```
 
 Or one command: **`.\run.ps1`** (Windows) / **`./run.sh`** (macOS/Linux) —

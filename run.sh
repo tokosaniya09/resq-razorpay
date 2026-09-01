@@ -20,7 +20,7 @@ sleep 6
 
 echo "Streaming demo events (with an outage)..."
 ( cd "$ROOT/backend" && [ -d .venv ] && source .venv/bin/activate; \
-  python scripts/generate_events.py --count 90 --rate 5 --outage --outage-at 30 --outage-len 25 --seed 7 )
+  python scripts/generate_events.py --count 140 --rate 5 --outage --outage-at 30 --outage-len 20 --seed 7 )
 
 echo "Dashboard: http://localhost:5173  (Ctrl+C to stop everything)"
 wait

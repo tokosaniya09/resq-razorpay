@@ -28,7 +28,7 @@ seed:
 	cd backend && python scripts/generate_events.py --count 40 --rate 6
 
 demo:
-	cd backend && python scripts/generate_events.py --count 90 --rate 5 --outage --outage-at 30 --outage-len 25 --seed 7
+	cd backend && python scripts/generate_events.py --count 140 --rate 5 --outage --outage-at 30 --outage-len 20 --seed 7
 
 baseline:
 	cd backend && python scripts/run_baseline.py --count 200 --outage --seed 7

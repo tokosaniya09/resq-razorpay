@@ -20,7 +20,7 @@ given a bounded action (center), ₹ rescued ticking up and simulated messages
 
 ## Beat 2 — "now a bank starts failing" (60s)
 ```
-python scripts/generate_events.py --count 90 --rate 5 --outage --outage-at 20 --outage-len 30 --seed 7
+python scripts/generate_events.py --count 140 --rate 5 --outage --outage-at 30 --outage-len 20 --seed 7
 ```
 Watch `UPI-SBI` climb `HEALTHY → DEGRADING → DOWN`. The instant it's `DOWN`:
 - the center pane shows the **retries-suspended banner**,
