@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ResQ·Pay — Reliability Console (standalone demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+  :root{
+    --ink-900:#0E1116; --ink-800:#141922; --ink-700:#1A2029; --ink-600:#212936;
+    --line:#2A3340; --fg:#E6EAF0; --muted:#8A94A6; --faint:#5B6675;
+    --healthy:#3FB950; --degrading:#D29922; --down:#F85149;
+    --recovering:#58A6FF; --rescued:#2DD4BF;
+  }
+  *{box-sizing:border-box}
+  html,body,#root{height:100%}
+  body{margin:0;background:var(--ink-900);color:var(--fg);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  .app{display:flex;flex-direction:column;height:100vh}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 18px;border-bottom:1px solid var(--line)}
+  .brand{font-family:"IBM Plex Mono";font-weight:600;font-size:18px;letter-spacing:-.02em}
+  .brand .dot{color:var(--rescued)}
+  .tag{font-size:12px;color:var(--muted);margin-left:12px}
+  .controls{display:flex;align-items:center;gap:8px}
+  .btn{font-family:"IBM Plex Sans";font-size:12px;font-weight:500;color:var(--fg);
+    background:var(--ink-700);border:1px solid var(--line);border-radius:6px;
+    padding:6px 11px;cursor:pointer;transition:all .15s}
+  .btn:hover{background:var(--ink-600)}
+  .btn.primary{background:rgba(45,212,191,.12);border-color:rgba(45,212,191,.4);color:var(--rescued)}
+  .btn.danger{background:rgba(248,81,73,.12);border-color:rgba(248,81,73,.4);color:var(--down)}
+  .btn.danger:disabled{opacity:.4;cursor:not-allowed}
+  .conn{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .pip{height:8px;width:8px;border-radius:50%}
+
+  .main{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:12px;padding:12px;
+    flex:1;min-height:0}
+  @media(max-width:1000px){.main{grid-template-columns:1fr;overflow:auto}}
+  .pane{display:flex;flex-direction:column;min-height:0;background:var(--ink-800);
+    border:1px solid var(--line);border-radius:10px}
+  .pane-h{display:flex;align-items:center;justify-content:space-between;
+    padding:11px 16px;border-bottom:1px solid var(--line)}
+  .pane-h h2{margin:0;font-size:14px;font-weight:600}
+  .pane-h .sub{font-size:12px;color:var(--muted)}
+  .scroll{flex:1;min-height:0;overflow-y:auto}
+  .empty{padding:16px;color:var(--faint);font-size:14px}
+
+  .row{padding:10px 16px;border-bottom:1px solid rgba(42,51,64,.6)}
+  .row .l1,.row .l2,.row .l3{display:flex;align-items:center;justify-content:space-between}
+  .row .l2,.row .l3{margin-top:4px}
+  .route{font-size:14px}
+  .st-failed{color:var(--down)} .st-captured{color:var(--healthy)}
+  .muted{color:var(--muted)} .faint{color:var(--faint)}
+  .sz-xs{font-size:11px} .sz-s{font-size:12px}
+
+  .badge{display:inline-flex;align-items:center;border-radius:4px;padding:2px 6px;
+    font-size:11px;font-weight:500;border:1px solid;font-family:"IBM Plex Mono"}
+  .b-HEALTHY,.b-TD,.b-RETRY{color:var(--recovering);border-color:rgba(88,166,255,.4);background:rgba(88,166,255,.1)}
+  .b-DEGRADING,.b-BD,.b-HOLD{color:var(--degrading);border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.1)}
+  .b-DOWN{color:var(--down);border-color:rgba(248,81,73,.4);background:rgba(248,81,73,.1)}
+  .b-RECOVERING{color:var(--recovering);border-color:rgba(88,166,255,.4);background:rgba(88,166,255,.1)}
+  .b-LINK{color:var(--rescued);border-color:rgba(45,212,191,.4);background:rgba(45,212,191,.1)}
+  .b-STOP,.b-UNKNOWN{color:var(--muted);border-color:var(--line);background:var(--ink-600)}
+  .b-HEALTHY.state{color:var(--healthy);border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.1)}
+
+  .track{border:1px solid var(--line);background:var(--ink-700);border-radius:8px;padding:11px;margin-bottom:8px}
+  .track-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .bar{height:6px;width:100%;background:var(--ink-900);border-radius:4px;overflow:hidden;margin-bottom:8px}
+  .bar>div{height:100%;transition:width .5s,background .3s}
+  .stages{display:flex;gap:4px}
+  .stage{flex:1;display:flex;align-items:center;gap:5px}
+  .sdot{height:8px;width:8px;border-radius:50%;background:var(--ink-600)}
+  .slabel{font-size:10px;color:var(--faint);font-family:"IBM Plex Mono"}
+  .stage.on .slabel{color:var(--fg)}
+
+  .banner{padding:9px 16px;font-size:12px;border-bottom:1px solid rgba(248,81,73,.4);
+    background:rgba(248,81,73,.1);color:var(--down)}
+
+  .chain{display:flex;align-items:center;gap:6px}
+  .arrow{color:var(--faint)}
+  .reason{margin-top:5px;font-size:12px;color:var(--muted)}
+  .rule{margin-top:4px;font-size:10px;color:var(--faint);font-family:"IBM Plex Mono"}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+  .stat{border:1px solid var(--line);background:var(--ink-700);border-radius:8px;padding:11px}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .stat .v{margin-top:4px;font-family:"IBM Plex Mono";font-size:22px;font-weight:600}
+  .stat .s{margin-top:2px;font-size:12px;color:var(--faint)}
+  .v-rescued{color:var(--rescued)} .v-ok{color:var(--healthy)} .v-info{color:var(--recovering)}
+
+  .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+    padding:12px 12px 8px}
+  .msg{border:1px solid var(--line);background:var(--ink-700);border-radius:8px;padding:11px;margin:0 12px 8px}
+  .msg p{margin:0;font-size:13px}
+  .msg .meta{margin-top:6px;display:flex;gap:8px;align-items:center}
+  .pill{background:var(--ink-600);border-radius:4px;padding:2px 6px;font-size:10px;color:var(--muted);font-family:"IBM Plex Mono"}
+
+  .footer{border-top:1px solid var(--line);padding:8px 18px;text-align:center;
+    font-size:11px;color:var(--faint);font-family:"IBM Plex Mono"}
+
+  @keyframes rowIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .in{animation:rowIn .28s ease-out}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(248,81,73,.45)}100%{box-shadow:0 0 0 14px rgba(248,81,73,0)}}
+  .pulse{animation:pulse .9s ease-out}
+  @media(prefers-reduced-motion:reduce){.in,.pulse{animation:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ============================================================================
+   ENGINE — a faithful in-browser port of the backend deterministic core.
+   Same TD/BD table, same degradation state machine, same guardrails, same
+   R1..R6 policy. This is what lets the demo run with no server while staying
+   true to the real logic.
+   ========================================================================== */
+
+const CONFIG = {
+  windowSize: 20, minSamples: 5, warn: 0.40, critical: 0.65,
+  recovering: 0.25, drainAfterMs: 2500,
+  maxRetries: 2,
+};
+
+const TABLE = {
+  GATEWAY_TIMEOUT:{c:"TD",soft:true,reason:"Gateway timeout"},
+  NETWORK_TIMEOUT:{c:"TD",soft:true,reason:"Network timeout"},
+  ACQUIRER_TIMEOUT:{c:"TD",soft:true,reason:"Acquirer timeout"},
+  SERVER_ERROR:{c:"TD",soft:true,reason:"Acquirer server error"},
+  UPI_TECHNICAL_DECLINE:{c:"TD",soft:true,reason:"UPI technical decline (NPCI TD)"},
+  INSUFFICIENT_FUNDS:{c:"BD",soft:false,reason:"Insufficient funds"},
+  INCORRECT_PIN:{c:"BD",soft:false,reason:"Incorrect UPI PIN"},
+  CARD_EXPIRED:{c:"BD",soft:false,reason:"Card expired"},
+  PAYMENT_CANCELLED:{c:"BD",soft:false,reason:"Cancelled by customer"},
+  LIMIT_EXCEEDED:{c:"BD",soft:false,reason:"Per-txn limit exceeded"},
+};
+const classify = (code) =>
+  TABLE[code] || {c:"UNKNOWN",soft:false,reason:"Unmapped error code"};
+
+// Degradation detector — one rolling window + state machine per route.
+function makeDetector(){
+  const routes = {};
+  const win = (r)=> routes[r] || (routes[r]={buf:[],state:"HEALTHY",since:Date.now()});
+  function observe(ev){
+    const w = win(ev.route);
+    w.buf.push(ev.status==="failed");
+    if(w.buf.length>CONFIG.windowSize) w.buf.shift();
+    const rate = w.buf.length ? w.buf.filter(Boolean).length/w.buf.length : 0;
+    const prev = w.state;
+    let next = prev;
+    if(w.buf.length<CONFIG.minSamples) next="HEALTHY";
+    else if(rate>=CONFIG.critical) next="DOWN";
+    else if(rate>=CONFIG.warn) next="DEGRADING";
+    else {
+      if(prev==="DOWN"||prev==="DEGRADING"){
+        next = rate<=CONFIG.recovering ? "RECOVERING" : "DEGRADING";
+      } else if(prev==="RECOVERING"){
+        next = (Date.now()-w.since)>=CONFIG.drainAfterMs ? "HEALTHY":"RECOVERING";
+      } else next="HEALTHY";
+    }
+    if(next!==prev){ w.state=next; w.since=Date.now(); }
+    return {route:ev.route,state:w.state,failure_rate:+rate.toFixed(4),samples:w.buf.length,changed:next!==prev};
+  }
+  const snapshot = ()=> Object.entries(routes).map(([r,w])=>({
+    route:r,state:w.state,failure_rate:+(w.buf.length?w.buf.filter(Boolean).length/w.buf.length:0).toFixed(4),samples:w.buf.length}));
+  return {observe,snapshot,routes};
+}
+
+// Guardrails — retry cap + idempotency.
+function makeGuardrails(){
+  const txns={};
+  const st=(t)=> txns[t]||(txns[t]={attempts:0,keys:new Set()});
+  return {
+    capReached:(t)=> st(t).attempts>=CONFIG.maxRetries,
+    nextAttempt:(t)=> st(t).attempts+1,
+    key:(t,a)=>`resq:${t}:attempt:${a}`,
+    register:(t,k)=>{const s=st(t); if(s.keys.has(k))return false; s.keys.add(k); s.attempts++; return true;},
+    attempts:(t)=>st(t).attempts,
+  };
+}
+
+// Policy — R1..R6, first match wins.
+function decide(ev,cls,routeState,g){
+  const t=ev.transaction_id, tech=cls.c==="TD", biz=cls.c==="BD";
+  if(routeState==="DOWN"&&tech)
+    return {action:"HOLD",rule:"R1_hold_route_down",reason:`Route ${ev.route} is DOWN; holding to avoid a duplicate charge and wasted fees. Recovers when healthy.`};
+  if((routeState==="DEGRADING"||routeState==="RECOVERING")&&tech)
+    return {action:"HOLD",rule:"R2_hold_route_degrading",reason:`Route ${ev.route} is ${routeState}; holding technical failures until it stabilises.`};
+  if(biz)
+    return {action:"LINK",rule:"R3_business_recovery_link",reason:`User-side failure (${cls.reason}); issuing a fresh bounded payment link + message.`};
+  if(tech&&cls.soft&&routeState==="HEALTHY"){
+    if(g.capReached(t)) return {action:"STOP",rule:"R5_retry_cap_reached",reason:`Retry cap reached for ${t}; stopping honestly.`};
+    return {action:"RETRY",rule:"R4_safe_retry",reason:`Soft technical failure (${cls.reason}) on a healthy route; safe retry.`};
+  }
+  if(tech&&g.capReached(t))
+    return {action:"STOP",rule:"R5_retry_cap_reached",reason:`Retry cap reached for ${t}; stopping honestly.`};
+  return {action:"STOP",rule:"R6_unrecoverable",reason:`No safe bounded recovery for ${cls.c} (${cls.reason}); marking unrecoverable rather than guessing.`};
+}
+
+// Mock gateway — success keyed to TRUE rail health (honest model).
+function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return ((h>>>0)%1000)/1000;}
+const gatewaySucceeds=(key,healthy)=> rng(key) < (healthy?0.82:0.15);
+
+/* ----------------------------------------------------------------------------
+   ADVISORY AI (offline heuristic versions).
+   In the real backend these are written by an LLM (Gemini) with these same
+   heuristics as the fallback. Here we always use the heuristic so the demo
+   runs with no network — same text the backend produces when the LLM is off.
+   Both are text-only and never change a money decision.
+   -------------------------------------------------------------------------- */
+function diagnoseRoute(recent, route, state, rate){
+  const n=recent.length;
+  const tech=recent.filter(r=>r.c==="TD").length;
+  const biz=recent.filter(r=>r.c==="BD").length;
+  const techPct=n?Math.round(tech/n*100):0;
+  const codes={}; recent.forEach(r=>{const k=r.code||"UNKNOWN";codes[k]=(codes[k]||0)+1;});
+  const top=Object.entries(codes).sort((a,b)=>b[1]-a[1])[0]||["n/a",0];
+  const amounts=new Set(recent.map(r=>r.amount)).size;
+  let cause,posture;
+  if(techPct>=60){
+    cause=`predominantly technical (${techPct}% bank/infra-side, mostly ${top[0]}), spread across ${amounts} distinct amounts — consistent with an acquirer-side outage rather than customer errors`;
+    posture="Hold retries until the rail recovers, then drain.";
+  } else if(biz>tech){
+    cause=`mostly customer-side (${biz} of ${n}), e.g. ${top[0]} — not an infrastructure outage`;
+    posture="Issue fresh payment links; do not retry blindly.";
+  } else {
+    cause=`a mix of technical and customer-side failures (${n} total)`;
+    posture="Proceed cautiously; hold technical failures if the rate climbs.";
+  }
+  return {route,state,generated_by:"heuristic",sample_size:n,
+    body:`${route} is ${state} at ${Math.round(rate*100)}% failure over the last ${n} attempts: ${cause}. ${posture}`};
+}
+function escalationNote(ev,d,cls){
+  return {transaction_id:ev.transaction_id,generated_by:"template",
+    body:`Payment ${ev.transaction_id} (${rupees(ev.amount)} on ${ev.route}) could not be auto-recovered after ${g_attempt(d)} attempt(s); stopped by rule ${d.rule} (${cls.reason}). Recommend manual follow-up or dunning; do not auto-retry.`};
+}
+function g_attempt(d){ return 1; }
+
+/* ============================================================================
+   SYNTHETIC GENERATOR
+   ========================================================================== */
+const ROUTES=["UPI-HDFC","UPI-SBI","CARD-ICICI","UPI-AXIS"];
+const TECH=["GATEWAY_TIMEOUT","NETWORK_TIMEOUT","ACQUIRER_TIMEOUT","SERVER_ERROR","UPI_TECHNICAL_DECLINE"];
+const BIZ=["INSUFFICIENT_FUNDS","INCORRECT_PIN","CARD_EXPIRED","PAYMENT_CANCELLED","LIMIT_EXCEEDED"];
+const NAMES=["Aarav","Diya","Vivaan","Ananya","Kabir","Ishaan","Meera","Rohan"];
+const AMOUNTS=[19900,49900,99900,149900,250000];
+const OUTAGE_ROUTE="UPI-SBI";
+const pick=(a)=>a[Math.floor(Math.random()*a.length)];
+let counter=0;
+function genEvent(outage){
+  let route,status,code;
+  if(outage){
+    route=OUTAGE_ROUTE;
+    if(Math.random()<0.85){status="failed";code=pick(TECH);} else {status="captured";code=null;}
+  } else {
+    route=pick(ROUTES); const r=Math.random();
+    if(r<0.82){status="captured";code=null;}
+    else if(r<0.90){status="failed";code=pick(TECH);}
+    else {status="failed";code=pick(BIZ);}
+  }
+  counter++;
+  return {event_id:"evt_"+counter+"_"+Math.random().toString(36).slice(2,8),
+    transaction_id:"txn_"+Math.random().toString(36).slice(2,10),
+    amount:pick(AMOUNTS),route,status,error_code:code,
+    customer_name:pick(NAMES),outage_active:outage,received_at:new Date().toISOString()};
+}
+
+/* ============================================================================
+   FORMAT HELPERS
+   ========================================================================== */
+const rupees=(paise)=>"₹"+(paise/100).toLocaleString("en-IN",{maximumFractionDigits:0});
+const pctf=(x)=>(x*100).toFixed(0)+"%";
+const shortId=(id)=> id.length>13?id.slice(0,11)+"…":id;
+const clock=(iso)=> new Date(iso).toLocaleTimeString("en-IN",{hour12:false});
+
+/* ============================================================================
+   COMPONENTS
+   ========================================================================== */
+const Badge=({label,kind,state})=>
+  <span className={"badge b-"+label+(state?" state":"")}>{label}</span>;
+
+function RouteTrack({route,state,failure_rate,samples}){
+  const ORDER=["HEALTHY","DEGRADING","DOWN","RECOVERING"];
+  const color={DOWN:"var(--down)",DEGRADING:"var(--degrading)",RECOVERING:"var(--recovering)",HEALTHY:"var(--healthy)"}[state];
+  const dot={HEALTHY:"var(--healthy)",DEGRADING:"var(--degrading)",DOWN:"var(--down)",RECOVERING:"var(--recovering)"};
+  return (
+    <div className="track">
+      <div className="track-h">
+        <span className="mono route">{route}</span>
+        <span className="mono sz-xs muted">{pctf(failure_rate)} fail · n={samples}</span>
+      </div>
+      <div className="bar"><div style={{width:Math.min(100,failure_rate*100)+"%",background:color}}/></div>
+      <div className="stages">
+        {ORDER.map(s=>(
+          <div key={s} className={"stage"+(s===state?" on":"")}>
+            <span className="sdot" style={{background:s===state?dot[s]:"var(--ink-600)"}}/>
+            <span className="slabel">{s}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EventStream({frames}){
+  return (
+    <section className="pane">
+      <div className="pane-h"><h2>Event stream</h2><span className="sub mono">{frames.length} events</span></div>
+      <div className="scroll">
+        {frames.length===0 && <p className="empty">Waiting for events. Press Start.</p>}
+        {frames.map(f=>(
+          <div key={f.event.event_id} className="row in">
+            <div className="l1">
+              <span className="mono route">{f.event.route}</span>
+              <span className={"mono sz-s st-"+f.event.status}>{f.event.status}</span>
+            </div>
+            <div className="l2">
+              <span className="mono sz-xs muted">{f.event.error_code||"—"}</span>
+              <span className="mono sz-xs muted">{rupees(f.event.amount)}</span>
+            </div>
+            <div className="l3">
+              <span className="mono sz-xs faint">{shortId(f.event.transaction_id)}</span>
+              <span className="mono sz-xs faint">{clock(f.event.received_at)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DecisionPipeline({frames,routes,diagnoses}){
+  const anyDown=Object.values(routes).some(r=>r.state==="DOWN");
+  const failed=frames.filter(f=>f.event.status==="failed");
+  const activeDiag=Object.values(diagnoses||{}).filter(d=>d && (d.state==="DEGRADING"||d.state==="DOWN"));
+  return (
+    <section className="pane">
+      <div className="pane-h"><h2>Decision pipeline</h2><span className="sub mono">classify → detect → decide</span></div>
+      <div style={{padding:"12px",borderBottom:"1px solid var(--line)"}}>
+        {Object.keys(routes).length===0 && <p className="empty" style={{padding:0}}>Route health appears here.</p>}
+        {Object.values(routes).map(r=>(
+          <RouteTrack key={r.route} {...r}/>
+        ))}
+      </div>
+      {activeDiag.map(d=>(
+        <div key={d.route} style={{padding:"10px 16px",borderBottom:"1px solid rgba(88,166,255,.3)",background:"rgba(88,166,255,.05)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <span style={{background:"rgba(88,166,255,.15)",color:"var(--recovering)",borderRadius:4,padding:"2px 6px",fontFamily:"IBM Plex Mono",fontSize:10,fontWeight:500}}>AI ROOT-CAUSE</span>
+            <span className="mono sz-xs faint">{d.route} · {d.generated_by} · n={d.sample_size}</span>
+          </div>
+          <p style={{margin:0,fontSize:12,lineHeight:1.5,color:"var(--muted)"}}>{d.body}</p>
+        </div>
+      ))}
+      {anyDown && <div className="banner pulse">Rail DOWN — retries suspended. Holding technical failures to prevent duplicate charges; will drain when healthy.</div>}
+      <div className="scroll">
+        {failed.length===0 && <p className="empty">Decisions appear as failures arrive.</p>}
+        {failed.map(f=>(
+          <div key={f.event.event_id} className="row in">
+            <div className="l1">
+              <span className="mono sz-xs faint">{shortId(f.event.transaction_id)}</span>
+              <span className="chain">
+                <Badge label={f.classification.c}/>
+                <span className="arrow">→</span>
+                <Badge label={f.decision.action}/>
+              </span>
+            </div>
+            <p className="reason">{f.decision.reason}</p>
+            <div className="rule">{f.decision.rule}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Outcomes({frames,metrics,escalations}){
+  const outreach=frames.filter(f=>f.outreach).slice(0,6);
+  return (
+    <section className="pane">
+      <div className="pane-h"><h2>Outcomes</h2><span className="sub mono">live metrics</span></div>
+      <div className="stats">
+        <div className="stat"><div className="k">₹ Rescued</div><div className="v v-rescued">{rupees(metrics.rupees_rescued*100)}</div><div className="s">{metrics.recovered} recovered</div></div>
+        <div className="stat"><div className="k">Risky retries avoided</div><div className="v v-ok">{metrics.retries_avoided}</div><div className="s">held during degradation</div></div>
+        <div className="stat"><div className="k">Wasted retries avoided</div><div className="v v-ok">{metrics.wasted_avoided}</div><div className="s">hard failures not retried</div></div>
+        <div className="stat"><div className="k">Links issued</div><div className="v v-info">{metrics.links}</div><div className="s">{metrics.unrecoverable} unrecoverable</div></div>
+      </div>
+      <div className="scroll">
+        <div className="sec-label">Outreach — simulated (generated, not delivered)</div>
+        {outreach.length===0 && <p className="empty">Messages appear when a recovery link is issued.</p>}
+        {outreach.map(f=>(
+          <div key={f.event.event_id} className="msg in">
+            <p>{f.outreach.body}</p>
+            <div className="meta">
+              <span className="pill">{f.outreach.generated_by}</span>
+              <span className="mono sz-xs faint">{f.event.route}</span>
+            </div>
+          </div>
+        ))}
+        {(escalations&&escalations.length>0) && <div className="sec-label" style={{marginTop:8}}>AI escalation notes (unrecovered → merchant ops)</div>}
+        {(escalations||[]).slice(0,5).map((e,i)=>(
+          <div key={e.transaction_id+i} className="msg in" style={{borderColor:"rgba(210,153,34,.3)",background:"rgba(210,153,34,.05)"}}>
+            <p>{e.body}</p>
+            <div className="meta">
+              <span className="pill" style={{color:"var(--degrading)"}}>{e.generated_by}</span>
+              <span className="mono sz-xs faint">{e.transaction_id}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================================
+   APP
+   ========================================================================== */
+function App(){
+  const [frames,setFrames]=useState([]);
+  const [routes,setRoutes]=useState({});
+  const [running,setRunning]=useState(false);
+  const [outage,setOutage]=useState(false);
+  const [metrics,setMetrics]=useState({rupees_rescued:0,recovered:0,retries_avoided:0,wasted_avoided:0,links:0,unrecoverable:0});
+  const [diagnoses,setDiagnoses]=useState({});
+  const [escalations,setEscalations]=useState([]);
+
+  // Engine instances live across renders.
+  const eng=useRef(null);
+  if(!eng.current) eng.current={det:makeDetector(),g:makeGuardrails(),held:[],recent:{}};
+  const outageRef=useRef(outage); outageRef.current=outage;
+
+  const bump=useCallback((patch)=> setMetrics(m=>({...m,...patch(m)})),[]);
+
+  const process=useCallback((ev)=>{
+    const {det,g,held,recent}=eng.current;
+    const cls=classify(ev.error_code);
+    const health=det.observe(ev);
+    setRoutes(det.snapshot().reduce((a,r)=>(a[r.route]=r,a),{}));
+
+    // feed recent-failure buffer per route (for AI root-cause)
+    if(ev.status==="failed"){
+      const buf=recent[ev.route]||(recent[ev.route]=[]);
+      buf.push({code:ev.error_code,c:cls.c,amount:ev.amount});
+      if(buf.length>20) buf.shift();
+    }
+    // AI root-cause diagnosis on a transition into DEGRADING/DOWN
+    if(health.changed && (health.state==="DEGRADING"||health.state==="DOWN")){
+      const dg=diagnoseRoute(recent[ev.route]||[], ev.route, health.state, health.failure_rate);
+      setDiagnoses(prev=>({...prev,[ev.route]:dg}));
+    }
+
+    if(ev.status!=="failed"){
+      pushFrame(ev,cls,health,null,null,null);
+      drain(det,g);
+      return;
+    }
+    const d=decide(ev,cls,health.state,g);
+    let outcome=null, outreach=null;
+
+    if(d.action==="RETRY"){
+      const key=g.key(ev.transaction_id,g.nextAttempt(ev.transaction_id));
+      if(g.register(ev.transaction_id,key)){
+        const ok=gatewaySucceeds(key,!ev.outage_active);
+        outcome={result:ok?"recovered":"failed",amount:ok?ev.amount:0};
+        if(ok) bump(m=>({rupees_rescued:m.rupees_rescued+ev.amount/100,recovered:m.recovered+1}));
+      } else outcome={result:"stopped",amount:0};
+    } else if(d.action==="LINK"){
+      const key=g.key(ev.transaction_id,g.nextAttempt(ev.transaction_id));
+      g.register(ev.transaction_id,key);
+      outcome={result:"held",amount:0};
+      outreach={body:msg(ev,cls),generated_by:"template"};
+      bump(m=>({links:m.links+1,wasted_avoided:m.wasted_avoided+1}));
+    } else if(d.action==="HOLD"){
+      outcome={result:"held",amount:0};
+      held.push(ev);
+      bump(m=>({retries_avoided:m.retries_avoided+1}));
+    } else {
+      outcome={result:"stopped",amount:0};
+      // AI escalation note when we STOP (unrecoverable / cap reached)
+      const esc=escalationNote(ev,d,cls);
+      setEscalations(prev=>[esc,...prev].slice(0,20));
+      bump(m=>({unrecoverable:m.unrecoverable+1,
+        wasted_avoided: d.rule==="R6_unrecoverable"?m.wasted_avoided+1:m.wasted_avoided}));
+    }
+    pushFrame(ev,cls,health,d,outcome,outreach);
+  },[]);
+
+  function drain(det,g){
+    const {held}=eng.current;
+    if(!held.length) return;
+    const remain=[];
+    held.forEach(ev=>{
+      const state=det.routes[ev.route]?.state||"HEALTHY";
+      const cls=classify(ev.error_code);
+      if(state==="HEALTHY" && cls.soft){
+        const key="resq:drain:"+ev.transaction_id;
+        if(g.register(ev.transaction_id,key)){
+          const ok=gatewaySucceeds(key,true);
+          if(ok){
+            bump(m=>({rupees_rescued:m.rupees_rescued+ev.amount/100,recovered:m.recovered+1}));
+            pushFrame({...ev,received_at:new Date().toISOString(),status:"failed"},
+              cls,{route:ev.route,state,failure_rate:0,samples:0,changed:false},
+              {action:"RETRY",rule:"drain_after_recovery",reason:`Rail ${ev.route} recovered; re-attempting held payment (post-outage drain).`},
+              {result:"recovered",amount:ev.amount},null);
+          } else remain.push(ev);
+        }
+      } else remain.push(ev);
+    });
+    eng.current.held=remain;
+  }
+
+  function pushFrame(ev,cls,health,d,outcome,outreach){
+    setFrames(prev=>[{event:ev,classification:cls,health,
+      decision:d||{action:"",rule:"",reason:""},outcome,outreach},...prev].slice(0,200));
+  }
+  function msg(ev,cls){
+    const name=ev.customer_name||"there";
+    return `Hi ${name}, your ${rupees(ev.amount)} payment didn't go through (${cls.reason.toLowerCase()}). Here's a fresh, secure link to try again (valid 15 min): rzp.io/i/… No amount was deducted.`;
+  }
+
+  // Tick loop
+  useEffect(()=>{
+    if(!running) return;
+    const id=setInterval(()=> process(genEvent(outageRef.current)), 550);
+    return ()=>clearInterval(id);
+  },[running,process]);
+
+  function reset(){
+    eng.current={det:makeDetector(),g:makeGuardrails(),held:[],recent:{}};
+    setFrames([]);setRoutes({});setOutage(false);setDiagnoses({});setEscalations([]);
+    setMetrics({rupees_rescued:0,recovered:0,retries_avoided:0,wasted_avoided:0,links:0,unrecoverable:0});
+  }
+
+  // worst rail for the header
+  const rank={HEALTHY:0,RECOVERING:1,DEGRADING:2,DOWN:3};
+  const worst=Object.values(routes).reduce((a,r)=>rank[r.state]>rank[a]?r.state:a,"HEALTHY");
+
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div style={{display:"flex",alignItems:"baseline"}}>
+          <span className="brand">ResQ<span className="dot">·</span>Pay</span>
+          <span className="tag">payment-rail reliability console</span>
+        </div>
+        <div className="controls">
+          <div className="conn" style={{marginRight:8}}>
+            worst rail <Badge label={worst} state={worst==="HEALTHY"}/>
+          </div>
+          <button className="btn primary" onClick={()=>setRunning(r=>!r)}>
+            {running?"Pause":"Start"}
+          </button>
+          <button className="btn danger" disabled={!running||outage} onClick={()=>{
+            setOutage(true); setTimeout(()=>setOutage(false),9000);
+          }}>Trigger bank outage</button>
+          <button className="btn" onClick={reset}>Reset</button>
+        </div>
+      </div>
+
+      <div className="main">
+        <EventStream frames={frames}/>
+        <DecisionPipeline frames={frames} routes={routes} diagnoses={diagnoses}/>
+        <Outcomes frames={frames} metrics={metrics} escalations={escalations}/>
+      </div>
+
+      <div className="footer">
+        Razorpay Test Mode · synthetic data · outreach generated, not delivered · every money decision is deterministic and logged · standalone in-browser demo of the real engine
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

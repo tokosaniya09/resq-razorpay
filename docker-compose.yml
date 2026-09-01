@@ -1,0 +1,18 @@
+# Optional one-command spin-up. `docker compose up` builds and runs the backend.
+# The frontend is a static Vite build; for the demo the dev server is simpler
+# (see the Makefile). This file exists so a reviewer can clone and run with one
+# command if they prefer containers.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - RAZORPAY_MOCK=true
+      - DATABASE_URL=sqlite:////data/resq_pay.db
+    volumes:
+      - resq_data:/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  resq_data:
