@@ -6,6 +6,7 @@ import { EventStream } from "./panes/EventStream";
 import { DecisionPipeline } from "./panes/DecisionPipeline";
 import { Outcomes } from "./panes/Outcomes";
 import { StateBadge } from "./components/StatusBadge";
+import { AskLedger } from "./components/AskLedger";
 
 const EMPTY_METRICS: Metrics = {
   total_events: 0,
@@ -86,6 +87,10 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      <div className="px-3 pt-3">
+        <AskLedger />
+      </div>
 
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-3">
         <EventStream frames={frames} />

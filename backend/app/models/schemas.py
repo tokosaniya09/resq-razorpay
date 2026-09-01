@@ -38,3 +38,7 @@ class MetricsOut(BaseModel):
     wasted_retries_avoided: int
     links_issued: int
     unrecoverable: int
+
+
+class AskIn(BaseModel):
+    question: str = Field(min_length=1, max_length=500)

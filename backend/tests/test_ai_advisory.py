@@ -98,3 +98,53 @@ def test_escalation_note_is_advisory_text_only(settings):
     assert "follow-up" in esc.body.lower() or "dunning" in esc.body.lower()
     # advisory: an Escalation has no Action field at all
     assert not hasattr(esc, "action")
+
+
+# --------------------------------------------------------------------------- #
+# Ledger assistant (Feature #4) — answers only from verified facts.
+# --------------------------------------------------------------------------- #
+def test_ledger_assistant_answers_from_facts(settings):
+    from app.services.assistant.service import LedgerAssistant
+    import app.services.ledger.metrics as mm
+
+    class _M:
+        rupees_rescued = 41966.0
+        recovered = 40
+        recovery_rate = 0.71
+        links_issued = 21
+        retries_avoided_degraded = 47
+        wasted_retries_avoided = 21
+        unrecoverable = 3
+        total_events = 90
+
+    mm.compute = lambda repo: _M()  # type: ignore
+
+    class _D:
+        def __init__(self, a, r):
+            self.action, self.rule_fired = a, r
+
+    class _Repo:
+        def all_decisions(self):
+            return [_D("HOLD", "R1_hold_route_down")] * 47
+
+    class _Snap:
+        def __init__(self, route, state, rate, n):
+            self.route = route
+            self.state = type("S", (), {"value": state})
+            self.failure_rate = rate
+            self.samples = n
+
+    class _Det:
+        def snapshot_all(self):
+            return [_Snap("UPI-SBI", "RECOVERING", 0.2, 20)]
+
+    a = LedgerAssistant(settings, _Det())  # llm disabled -> deterministic
+
+    ans = a.answer("How much did we rescue?", _Repo())
+    assert "41,966" in ans.answer and ans.generated_by == "deterministic"
+
+    ans2 = a.answer("How many were unrecoverable?", _Repo())
+    assert "3" in ans2.answer  # the specific branch wins, not the money branch
+
+    # the snapshot it used is real, inspectable facts
+    assert ans.snapshot["totals"]["payments_recovered"] == 40

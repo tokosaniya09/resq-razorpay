@@ -11,6 +11,7 @@ from fastapi import APIRouter, Request
 
 from app.db.session import SessionLocal
 from app.services.ledger import metrics as metrics_mod
+from app.models.schemas import AskIn
 from app.services.ledger.repository import LedgerRepository
 
 router = APIRouter()
@@ -108,5 +109,24 @@ def get_outreach(limit: int = 50):
             }
             for m in repo.recent_outreach(limit=limit)
         ]
+    finally:
+        session.close()
+
+
+@router.post("/api/ask")
+def ask_ledger(payload: AskIn, request: Request):
+    """Natural-language question answered strictly from the persisted ledger.
+    The assistant reads and explains; it never changes anything."""
+    assistant = request.app.state.assistant
+    session = SessionLocal()
+    try:
+        repo = LedgerRepository(session)
+        ans = assistant.answer(payload.question, repo)
+        return {
+            "question": ans.question,
+            "answer": ans.answer,
+            "generated_by": ans.generated_by,
+            "snapshot": ans.snapshot,
+        }
     finally:
         session.close()

@@ -1,12 +1,18 @@
-"""Isolated outreach service (§6.7).
+"""Customer outreach (§6.7).
 
-Turns a structured recovery context into a short, clear customer message.
-It calls the model only through the shared LLMClient, and returns only text —
-it has no authority to move money. If the LLM is off or fails, it falls back
-to a deterministic template, so recovery is never affected.
+Turns a recovery context into a short, clear customer message.
 
-This is the original "AI in the right place" boundary: natural-language
-generation on a side branch, walled off from the deterministic money path.
+Deliberate design choice: this uses a **deterministic template**, not an LLM.
+The message is a fixed factual notice — "your payment failed, here's a fresh
+link, no money was deducted" — and a good template says everything it needs to.
+Spending an LLM call (latency, cost, a rate-limit risk on a live demo) to
+reword a sentence that is already correct would add nothing. So we don't.
+
+This is the same principle as the rest of the system, applied honestly to our
+own feature: use AI only where it adds judgment or adaptation, not everywhere.
+The one place AI *would* help here is writing the message in the customer's
+language (Hinglish / regional). That is left as a clearly-marked seam below,
+off by default — if turned on, it is the only case that calls the model.
 """
 
 from __future__ import annotations
@@ -16,12 +22,6 @@ from dataclasses import dataclass
 from app.core.config import Settings
 from app.models.domain import Decision, Outreach, PaymentEvent
 from app.services.llm.client import LLMClient
-
-_SYSTEM = (
-    "You write short, warm payment-failure SMS messages for an Indian fintech. "
-    "Plain Indian English, under 40 words, no emoji, no markdown. Always "
-    "reassure the customer no money was deducted. Return only the message text."
-)
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ def _template_message(ctx: OutreachContext) -> str:
         else ""
     )
     return (
-        f"Hi {ctx.customer_first_name}, your ₹{ctx.amount_rupees} payment "
+        f"Hi {ctx.customer_first_name}, your \u20b9{ctx.amount_rupees} payment "
         f"didn't go through ({ctx.reason_plain}).{link} "
         f"No amount was deducted."
     )
@@ -55,20 +55,26 @@ class OutreachService:
     def generate(
         self, event: PaymentEvent, decision: Decision, ctx: OutreachContext
     ) -> Outreach:
-        prompt = (
-            f"Name: {ctx.customer_first_name}\n"
-            f"Amount: \u20b9{ctx.amount_rupees}\n"
-            f"Reason (plain): {ctx.reason_plain}\n"
-            f"Link: {ctx.link_url or 'none'} (valid {ctx.ttl_minutes}m)"
-        )
-        body = self._llm.complete(_SYSTEM, prompt, max_tokens=120)
-        if body:
-            return Outreach(
-                decision_event_id=event.event_id,
-                channel="simulated",
-                body=body,
-                generated_by="llm",
+        # Only reach for the model when a non-English target language is
+        # configured — the sole case where an LLM beats the template here.
+        target_lang = getattr(self._s, "outreach_language", "en")
+        if self._llm.enabled and target_lang != "en":
+            body = self._llm.complete(
+                f"Translate this payment-failure SMS into {target_lang}. Keep it "
+                f"under 40 words, plain, no emoji, no markdown. Return only the "
+                f"message.",
+                _template_message(ctx),
+                max_tokens=120,
             )
+            if body:
+                return Outreach(
+                    decision_event_id=event.event_id,
+                    channel="simulated",
+                    body=body,
+                    generated_by="llm",
+                )
+
+        # Default path: deterministic template. No LLM call, no tokens spent.
         return Outreach(
             decision_event_id=event.event_id,
             channel="simulated",  # generated + displayed, not delivered (Non-Goal N2)

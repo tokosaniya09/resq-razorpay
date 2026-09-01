@@ -19,6 +19,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.session import init_db
 from app.pipeline import Pipeline
+from app.services.assistant.service import LedgerAssistant
 from app.services.ingestion.service import IngestionService
 
 log = get_logger("resq.main")
@@ -32,6 +33,9 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.pipeline = Pipeline(settings)
     app.state.ingestion = IngestionService()
+    app.state.assistant = LedgerAssistant(
+        settings, app.state.pipeline.detector, app.state.pipeline.llm
+    )
     log.info(
         "ResQ-Pay started (gateway=%s, llm=%s)",
         app.state.pipeline.gateway.mode,
