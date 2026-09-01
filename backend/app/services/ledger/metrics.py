@@ -65,11 +65,13 @@ def compute(repo: LedgerRepository) -> Metrics:
                               RouteState.RECOVERING.value)
     )
 
-    # Hard (business) failures the naive loop would blindly retry: our STOPs on
-    # the unrecoverable rule + links (we chose a link instead of a doomed retry).
-    wasted_avoided = sum(
-        1 for d in decisions if d.rule_fired == "R6_unrecoverable"
-    ) + links_issued
+    # "Wasted retries avoided" = user-side (hard/business) failures where a
+    # naive loop would have retried and always failed, but we issued a link
+    # instead. Every business failure becomes a recovery link (rule R3), so this
+    # is exactly links_issued. We deliberately do NOT add the R6 unrecoverable
+    # stops here — those are counted under `unrecoverable`, and counting them in
+    # both places was a double-count.
+    wasted_avoided = links_issued
 
     unrecoverable = sum(1 for d in decisions if d.action == Action.STOP.value)
 

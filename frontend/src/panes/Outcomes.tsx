@@ -1,6 +1,6 @@
 import type { Metrics, PipelineFrame } from "../lib/types";
 import { MetricStat } from "../components/MetricStat";
-import { rupees } from "../lib/format";
+import { rupees, pct } from "../lib/format";
 
 // Right pane — outcomes, live metrics, audit ledger, and simulated outreach.
 export function Outcomes({
@@ -25,19 +25,23 @@ export function Outcomes({
           label="₹ Rescued"
           value={rupees(metrics.rupees_rescued * 100)}
           accent="text-rescued"
-          sub={`${metrics.recovered} recovered`}
+          sub={`${metrics.recovered} captured on re-attempt`}
         />
         <MetricStat
           label="Risky retries avoided"
           value={String(metrics.retries_avoided_degraded)}
           accent="text-healthy"
-          sub="held during degradation"
+          sub="held while rail unhealthy"
         />
         <MetricStat
-          label="Wasted retries avoided"
-          value={String(metrics.wasted_retries_avoided)}
+          label="Retry success"
+          value={
+            metrics.retries_fired > 0
+              ? pct(metrics.recovered / metrics.retries_fired)
+              : "—"
+          }
           accent="text-healthy"
-          sub="hard failures not retried"
+          sub={`${metrics.recovered}/${metrics.retries_fired} retries captured`}
         />
         <MetricStat
           label="Links issued"

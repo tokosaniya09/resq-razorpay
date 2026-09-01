@@ -55,6 +55,7 @@ export interface Metrics {
   recovered: number;
   recovery_rate: number;
   rupees_rescued: number;
+  retries_fired: number;
   retries_avoided_degraded: number;
   wasted_retries_avoided: number;
   links_issued: number;
