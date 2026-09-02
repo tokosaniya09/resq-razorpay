@@ -70,9 +70,26 @@ class Pipeline:
         # feed the diagnosis buffer with every event (tracks recent failures)
         self.diagnosis.observe(event)
 
-        # 2) observe stream health for this route
+        # 2) observe stream health for this route (successes AND failures both
+        #    count toward a rail's health).
         health = self.detector.observe(event)
 
+        # --- Successful payments need no recovery. --------------------------- #
+        # A captured payment has nothing to classify, decide, or escalate — it
+        # already succeeded. We only record it and let it improve the rail's
+        # health (which may push the rail back to HEALTHY and trigger a drain of
+        # previously held payments). Running the decision logic on successes was
+        # a bug: they'd classify as UNKNOWN -> STOP and be miscounted as
+        # "unrecoverable" (and fire escalation notes).
+        if event.status.lower() != "failed":
+            ledger.record_event(event)
+            ledger.record_health(health)
+            ledger.commit()
+            drain_frames = self._maybe_drain(event.route, health, ledger)
+            primary = self._captured_frame(event, health)
+            return {"primary": primary, "drained": drain_frames}
+
+        # --- Failed payments: the full recovery pipeline. ------------------- #
         # 3) decide exactly one bounded action
         decision = self.policy.decide(event, classification, health.state)
 
@@ -89,12 +106,18 @@ class Pipeline:
             self._held.setdefault(event.route, []).append(event)
 
         # 5c) ADVISORY AI (text only, never gates money):
-        #  - diagnosis when a rail transitions into DEGRADING/DOWN
+        #  - diagnosis ONCE when a rail first degrades (enters DEGRADING/DOWN
+        #    from a healthy state), not on every threshold wiggle within the
+        #    same outage — one root-cause analysis per episode is enough, and
+        #    it keeps LLM usage low.
         #  - escalation note when we STOP (unrecoverable / cap reached)
         diagnosis = None
-        if health.changed and health.state in (
-            RouteState.DEGRADING, RouteState.DOWN
-        ):
+        entered_bad_state = (
+            health.changed
+            and health.state in (RouteState.DEGRADING, RouteState.DOWN)
+            and health.previous_state in (RouteState.HEALTHY, RouteState.RECOVERING)
+        )
+        if entered_bad_state:
             diagnosis = self.diagnosis.diagnose(
                 event.route, health.state, health.failure_rate
             )
@@ -188,6 +211,40 @@ class Pipeline:
         return frames
 
     # --------------------------------------------------------------------- #
+    def _captured_frame(
+        self, event: PaymentEvent, health: HealthSnapshot
+    ) -> dict[str, Any]:
+        """Frame for a successful payment: shown in the event stream, but with
+        no decision/outcome (nothing was recovered — it simply succeeded)."""
+        return {
+            "type": "pipeline_event",
+            "drained": False,
+            "event": {
+                "event_id": event.event_id,
+                "transaction_id": event.transaction_id,
+                "amount": event.amount,
+                "route": event.route,
+                "status": event.status,
+                "error_code": event.error_code,
+                "source": event.source.value,
+                "received_at": event.received_at.isoformat(),
+            },
+            "classification": None,
+            "health": {
+                "route": health.route,
+                "state": health.state.value,
+                "previous_state": health.previous_state.value,
+                "failure_rate": health.failure_rate,
+                "samples": health.samples,
+                "changed": health.changed,
+            },
+            "decision": None,
+            "outcome": None,
+            "outreach": None,
+            "diagnosis": None,
+            "escalation": None,
+        }
+
     def _execute(self, event: PaymentEvent, decision: Decision) -> Outcome:
         if decision.action == Action.RETRY:
             return self.executors.retry(event, decision)

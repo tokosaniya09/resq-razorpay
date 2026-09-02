@@ -72,7 +72,7 @@ export function DecisionPipeline({
         )}
 
         {frames
-          .filter((f) => f.event.status === "failed")
+          .filter((f) => f.event.status === "failed" && f.decision && f.classification)
           .map((f) => (
             <div
               key={f.event.event_id}
@@ -83,14 +83,14 @@ export function DecisionPipeline({
                   {shortId(f.event.transaction_id)}
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <ClassBadge c={f.classification.class} />
+                  <ClassBadge c={f.classification!.class} />
                   <span className="text-fg-faint">→</span>
-                  <ActionBadge action={f.decision.action} />
+                  <ActionBadge action={f.decision!.action} />
                 </div>
               </div>
-              <p className="mt-1 text-xs text-fg-muted">{f.decision.reason}</p>
+              <p className="mt-1 text-xs text-fg-muted">{f.decision!.reason}</p>
               <div className="mt-1 font-mono text-[10px] text-fg-faint">
-                {f.decision.rule_fired}
+                {f.decision!.rule_fired}
               </div>
             </div>
           ))}

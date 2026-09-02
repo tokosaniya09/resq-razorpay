@@ -16,7 +16,7 @@ export interface PipelineFrame {
     source: string;
     received_at: string;
   };
-  classification: { class: FailureClass; is_soft: boolean; reason: string };
+  classification: { class: FailureClass; is_soft: boolean; reason: string } | null;
   health: {
     route: string;
     state: RouteState;
@@ -31,8 +31,8 @@ export interface PipelineFrame {
     reason: string;
     attempt_number: number;
     route_state: RouteState;
-  };
-  outcome: { result: string; amount_recovered: number; detail: string };
+  } | null;
+  outcome: { result: string; amount_recovered: number; detail: string } | null;
   outreach: { body: string; generated_by: string; channel: string } | null;
   diagnosis: {
     route: string;
