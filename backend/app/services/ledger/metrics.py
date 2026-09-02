@@ -30,8 +30,8 @@ class Metrics:
     recovery_rate: float
     rupees_rescued: float
     retries_fired: int
-    retries_avoided_degraded: int   # HOLDs while route unhealthy
-    wasted_retries_avoided: int     # hard failures not retried
+    retries_avoided_degraded: int  # HOLDs while route unhealthy
+    wasted_retries_avoided: int  # hard failures not retried
     links_issued: int
     unrecoverable: int
 
@@ -51,9 +51,7 @@ def compute(repo: LedgerRepository) -> Metrics:
     rupees = sum(o.amount_recovered for o in recovered_outcomes) / 100.0
 
     retries_fired = sum(1 for d in decisions if d.action == Action.RETRY.value)
-    links_issued = sum(
-        1 for d in decisions if d.action == Action.RECOVERY_LINK.value
-    )
+    links_issued = sum(1 for d in decisions if d.action == Action.RECOVERY_LINK.value)
 
     # HOLDs taken specifically because the route was unhealthy = retries the
     # naive baseline would have fired into a failing rail.
@@ -61,8 +59,12 @@ def compute(repo: LedgerRepository) -> Metrics:
         1
         for d in decisions
         if d.action == Action.HOLD.value
-        and d.route_state in (RouteState.DEGRADING.value, RouteState.DOWN.value,
-                              RouteState.RECOVERING.value)
+        and d.route_state
+        in (
+            RouteState.DEGRADING.value,
+            RouteState.DOWN.value,
+            RouteState.RECOVERING.value,
+        )
     )
 
     # "Wasted retries avoided" = user-side (hard/business) failures where a

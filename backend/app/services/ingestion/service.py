@@ -30,11 +30,7 @@ class IngestionService:
         Razorpay nests the entity under payload.payment.entity; we defend
         against missing fields so a malformed webhook can't crash the path.
         """
-        entity = (
-            payload.get("payload", {})
-            .get("payment", {})
-            .get("entity", {})
-        )
+        entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
         event_id = payload.get("id") or entity.get("id") or f"evt_{utcnow().timestamp()}"
         return PaymentEvent(
             event_id=str(event_id),
@@ -67,6 +63,5 @@ class IngestionService:
     @staticmethod
     def _route_from(entity: dict[str, Any]) -> str:
         method = (entity.get("method") or "UPI").upper()
-        bank = (entity.get("bank") or entity.get("acquirer_data", {}).get("bank")
-                or "HDFC")
+        bank = entity.get("bank") or entity.get("acquirer_data", {}).get("bank") or "HDFC"
         return f"{method}-{bank}"

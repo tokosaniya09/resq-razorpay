@@ -32,7 +32,7 @@ from app.core.config import Settings
 @dataclass(frozen=True)
 class GatewayResult:
     ok: bool
-    reference: str            # gateway payment / link id
+    reference: str  # gateway payment / link id
     detail: str
     raw: dict
 
@@ -141,9 +141,7 @@ class RazorpayClient:
         if self._mock or not secret:
             # In mock/demo we accept synthetic posts; documented in honesty notes.
             return True
-        expected = hmac.new(
-            secret.encode(), body, hashlib.sha256
-        ).hexdigest()
+        expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
         return hmac.compare_digest(expected, signature)
 
     # --------------------------------------------------------------------- #

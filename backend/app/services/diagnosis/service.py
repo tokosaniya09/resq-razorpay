@@ -44,7 +44,7 @@ class Diagnosis:
     route: str
     state: str
     body: str
-    generated_by: str          # "llm" or "heuristic"
+    generated_by: str  # "llm" or "heuristic"
     failure_rate: float
     sample_size: int
 
@@ -80,15 +80,14 @@ class DiagnosisService:
             )
         )
 
-    def diagnose(
-        self, route: str, state: RouteState, failure_rate: float
-    ) -> Diagnosis:
+    def diagnose(self, route: str, state: RouteState, failure_rate: float) -> Diagnosis:
         """Summarize the current failure cluster on `route`. Advisory only."""
         records = list(self._recent.get(route, []))
         stats = self._stats(records, failure_rate)
 
-        body = self._llm.complete(_SYSTEM, self._prompt(route, state, stats),
-                                  max_tokens=180)
+        body = self._llm.complete(
+            _SYSTEM, self._prompt(route, state, stats), max_tokens=180
+        )
         generated_by = "llm"
         if not body:
             body = self._heuristic(route, state, stats)
@@ -109,7 +108,7 @@ class DiagnosisService:
         tech = sum(1 for r in records if r.failure_class == "TD")
         biz = sum(1 for r in records if r.failure_class == "BD")
         codes = Counter(r.error_code or "UNKNOWN" for r in records)
-        top_code, top_n = (codes.most_common(1)[0] if codes else ("n/a", 0))
+        top_code, top_n = codes.most_common(1)[0] if codes else ("n/a", 0)
         amounts = [r.amount for r in records]
         distinct_amounts = len(set(amounts))
         return {

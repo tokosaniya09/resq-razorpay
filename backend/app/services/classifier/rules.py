@@ -38,31 +38,23 @@ CLASSIFICATION_TABLE: dict[str, ClassRule] = {
     "NETWORK_TIMEOUT": ClassRule(FailureClass.TECHNICAL, True, "Network timeout"),
     "ACQUIRER_TIMEOUT": ClassRule(FailureClass.TECHNICAL, True, "Acquirer timeout"),
     "SERVER_ERROR": ClassRule(FailureClass.TECHNICAL, True, "Acquirer server error"),
-    "SERVER_UNAVAILABLE": ClassRule(
-        FailureClass.TECHNICAL, True, "Acquirer unavailable"
-    ),
+    "SERVER_UNAVAILABLE": ClassRule(FailureClass.TECHNICAL, True, "Acquirer unavailable"),
     "ISSUER_DOWN": ClassRule(FailureClass.TECHNICAL, True, "Issuing bank down"),
     "BANK_ERROR": ClassRule(FailureClass.TECHNICAL, True, "Bank-side error"),
     "UPI_TECHNICAL_DECLINE": ClassRule(
         FailureClass.TECHNICAL, True, "UPI technical decline (NPCI TD)"
     ),
     # ---- Business Decline (BD): user side, hard (not blind-retryable) ---- #
-    "INSUFFICIENT_FUNDS": ClassRule(
-        FailureClass.BUSINESS, False, "Insufficient funds"
-    ),
+    "INSUFFICIENT_FUNDS": ClassRule(FailureClass.BUSINESS, False, "Insufficient funds"),
     "BAD_REQUEST_ERROR": ClassRule(
         FailureClass.BUSINESS, False, "Invalid payment request"
     ),
     "INCORRECT_PIN": ClassRule(FailureClass.BUSINESS, False, "Incorrect UPI PIN"),
     "CARD_EXPIRED": ClassRule(FailureClass.BUSINESS, False, "Card expired"),
     "CARD_DECLINED": ClassRule(FailureClass.BUSINESS, False, "Card declined by issuer"),
-    "PAYMENT_CANCELLED": ClassRule(
-        FailureClass.BUSINESS, False, "Cancelled by customer"
-    ),
+    "PAYMENT_CANCELLED": ClassRule(FailureClass.BUSINESS, False, "Cancelled by customer"),
     "INVALID_ACCOUNT": ClassRule(FailureClass.BUSINESS, False, "Invalid account"),
-    "LIMIT_EXCEEDED": ClassRule(
-        FailureClass.BUSINESS, False, "Per-txn limit exceeded"
-    ),
+    "LIMIT_EXCEEDED": ClassRule(FailureClass.BUSINESS, False, "Per-txn limit exceeded"),
     "AUTHENTICATION_FAILED": ClassRule(
         FailureClass.BUSINESS, False, "Authentication failed"
     ),

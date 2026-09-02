@@ -31,9 +31,7 @@ class Executors:
     def retry(self, event: PaymentEvent, decision: Decision) -> Outcome:
         # Hard idempotency stop: register the execution first. If the key was
         # already used, we refuse — this is the "never double-charge" gate.
-        if not self._g.register_execution(
-            event.transaction_id, decision.idempotency_key
-        ):
+        if not self._g.register_execution(event.transaction_id, decision.idempotency_key):
             return Outcome(
                 decision_event_id=event.event_id,
                 result=OutcomeResult.STOPPED,
@@ -71,9 +69,7 @@ class Executors:
                 amount_recovered=0,
                 detail="Amount exceeds recovery-link cap — refused.",
             )
-        if not self._g.register_execution(
-            event.transaction_id, decision.idempotency_key
-        ):
+        if not self._g.register_execution(event.transaction_id, decision.idempotency_key):
             return Outcome(
                 decision_event_id=event.event_id,
                 result=OutcomeResult.STOPPED,

@@ -21,8 +21,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # is started from (a relative "env_file" is resolved against the current working
 # directory, which is a common cause of "my .env is ignored"). We look in the
 # backend folder and the repo root; if both exist, the backend one wins.
-_BACKEND_DIR = Path(__file__).resolve().parents[2]   # .../backend
-_REPO_ROOT = _BACKEND_DIR.parent                     # repo root
+_BACKEND_DIR = Path(__file__).resolve().parents[2]  # .../backend
+_REPO_ROOT = _BACKEND_DIR.parent  # repo root
 _ENV_FILES = (_REPO_ROOT / ".env", _BACKEND_DIR / ".env")
 
 
@@ -44,24 +44,24 @@ class Settings(BaseSettings):
     razorpay_mock: bool = True  # default to mock so it runs clone-and-go
 
     # ---- Degradation detector (§6.3) — all tunable at runtime ----
-    degradation_window_size: int = 20          # events per route in the rolling window
-    degradation_min_samples: int = 5           # don't judge health on too little data
-    degradation_warn_threshold: float = 0.40   # >=40% failures -> DEGRADING
+    degradation_window_size: int = 20  # events per route in the rolling window
+    degradation_min_samples: int = 5  # don't judge health on too little data
+    degradation_warn_threshold: float = 0.40  # >=40% failures -> DEGRADING
     degradation_critical_threshold: float = 0.65  # >=65% failures -> DOWN
-    recovering_threshold: float = 0.25         # fail rate must drop below this to recover
-    recovering_drain_after_seconds: int = 8    # dwell in RECOVERING before HEALTHY
+    recovering_threshold: float = 0.25  # fail rate must drop below this to recover
+    recovering_drain_after_seconds: int = 8  # dwell in RECOVERING before HEALTHY
 
     # ---- Guardrails (§6.5) — the safety contract ----
-    max_retry_attempts: int = 2                # per transaction identifier
-    retry_cooldown_seconds: int = 5            # rule-based, NOT ML (Non-Goal N3)
+    max_retry_attempts: int = 2  # per transaction identifier
+    retry_cooldown_seconds: int = 5  # rule-based, NOT ML (Non-Goal N3)
     recovery_link_ttl_minutes: int = 15
     recovery_link_amount_cap_paise: int = 50_000_00  # ₹50,000 hard ceiling
 
     # ---- Outreach / LLM (§6.7) ----
-    llm_enabled: bool = False                  # off by default -> template fallback
-    llm_provider: str = "gemini"               # "template" | "gemini" | "anthropic"
+    llm_enabled: bool = False  # off by default -> template fallback
+    llm_provider: str = "gemini"  # "template" | "gemini" | "anthropic"
     llm_api_key: str | None = None
-    llm_model: str = "gemini-3.6-flash"        # free tier via Google AI Studio
+    llm_model: str = "gemini-3.6-flash"  # free tier via Google AI Studio
     # "en" = template only (no LLM); set e.g. "Hinglish" to translate via LLM
     outreach_language: str = "en"
 

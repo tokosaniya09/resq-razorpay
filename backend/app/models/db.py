@@ -95,7 +95,7 @@ class AiNoteRow(Base):
     __tablename__ = "ai_notes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    kind: Mapped[str] = mapped_column(String, index=True)   # "diagnosis" | "escalation"
+    kind: Mapped[str] = mapped_column(String, index=True)  # "diagnosis" | "escalation"
     route: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     ref_id: Mapped[str | None] = mapped_column(String, nullable=True)  # txn/event id
     body: Mapped[str] = mapped_column(String)

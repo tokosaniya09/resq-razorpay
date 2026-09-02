@@ -97,13 +97,20 @@ class LedgerRepository:
         )
 
     def record_ai_note(
-        self, kind: str, body: str, generated_by: str,
-        route: str | None = None, ref_id: str | None = None,
+        self,
+        kind: str,
+        body: str,
+        generated_by: str,
+        route: str | None = None,
+        ref_id: str | None = None,
     ) -> None:
         self._db.add(
             AiNoteRow(
-                kind=kind, route=route, ref_id=ref_id,
-                body=body, generated_by=generated_by,
+                kind=kind,
+                route=route,
+                ref_id=ref_id,
+                body=body,
+                generated_by=generated_by,
             )
         )
 
@@ -130,6 +137,10 @@ class LedgerRepository:
     ) -> list[AiNoteRow]:
         stmt = select(AiNoteRow).order_by(AiNoteRow.at.desc()).limit(limit)
         if kind:
-            stmt = select(AiNoteRow).where(AiNoteRow.kind == kind).order_by(
-                AiNoteRow.at.desc()).limit(limit)
+            stmt = (
+                select(AiNoteRow)
+                .where(AiNoteRow.kind == kind)
+                .order_by(AiNoteRow.at.desc())
+                .limit(limit)
+            )
         return list(self._db.scalars(stmt))

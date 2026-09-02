@@ -47,8 +47,8 @@ _SYSTEM = (
 class AssistantAnswer:
     question: str
     answer: str
-    generated_by: str          # "llm" or "deterministic"
-    snapshot: dict             # the exact facts used, for transparency
+    generated_by: str  # "llm" or "deterministic"
+    snapshot: dict  # the exact facts used, for transparency
 
 
 class LedgerAssistant:
@@ -73,7 +73,9 @@ class LedgerAssistant:
         if body:
             return AssistantAnswer(question, body, "llm", snapshot)
         return AssistantAnswer(
-            question, self._deterministic(question, snapshot), "deterministic",
+            question,
+            self._deterministic(question, snapshot),
+            "deterministic",
             snapshot,
         )
 
@@ -129,10 +131,13 @@ class LedgerAssistant:
                 f"risk. Held payments are re-attempted once the rail recovers."
             )
         if any(w in q for w in ("reliable", "worst", "health", "rail", "route")):
-            rows = ", ".join(
-                f"{r['route']} {r['state']} ({r['failure_rate_pct']}%)"
-                for r in snap["route_health"]
-            ) or "no route data yet"
+            rows = (
+                ", ".join(
+                    f"{r['route']} {r['state']} ({r['failure_rate_pct']}%)"
+                    for r in snap["route_health"]
+                )
+                or "no route data yet"
+            )
             return f"Current rail health: {rows}."
         money_words = ("rescue", "recover", "money", "rupee", "\u20b9", "amount")
         if any(w in q for w in money_words):

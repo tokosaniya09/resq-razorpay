@@ -19,14 +19,10 @@ _settings = get_settings()
 
 # check_same_thread only matters for SQLite; harmless to compute conditionally.
 _connect_args = (
-    {"check_same_thread": False}
-    if _settings.database_url.startswith("sqlite")
-    else {}
+    {"check_same_thread": False} if _settings.database_url.startswith("sqlite") else {}
 )
 
-engine = create_engine(
-    _settings.database_url, connect_args=_connect_args, future=True
-)
+engine = create_engine(_settings.database_url, connect_args=_connect_args, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

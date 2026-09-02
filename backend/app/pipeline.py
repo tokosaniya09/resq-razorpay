@@ -61,9 +61,7 @@ class Pipeline:
         # real in the running app, not just in the offline baseline.
         self._held: dict[str, list[PaymentEvent]] = {}
 
-    def process(
-        self, event: PaymentEvent, ledger: LedgerRepository
-    ) -> dict[str, Any]:
+    def process(self, event: PaymentEvent, ledger: LedgerRepository) -> dict[str, Any]:
         # 1) classify (deterministic)
         classification = classify(event)
 
@@ -136,13 +134,18 @@ class Pipeline:
             ledger.record_outreach(outreach)
         if diagnosis:
             ledger.record_ai_note(
-                "diagnosis", diagnosis.body, diagnosis.generated_by,
+                "diagnosis",
+                diagnosis.body,
+                diagnosis.generated_by,
                 route=diagnosis.route,
             )
         if escalation:
             ledger.record_ai_note(
-                "escalation", escalation.body, escalation.generated_by,
-                route=event.route, ref_id=event.transaction_id,
+                "escalation",
+                escalation.body,
+                escalation.generated_by,
+                route=event.route,
+                ref_id=event.transaction_id,
             )
         ledger.commit()
 
@@ -151,8 +154,14 @@ class Pipeline:
 
         # 7) build the broadcast frame(s) for the dashboards
         primary = self._frame(
-            event, classification, health, decision, outcome, outreach,
-            diagnosis=diagnosis, escalation=escalation,
+            event,
+            classification,
+            health,
+            decision,
+            outcome,
+            outreach,
+            diagnosis=diagnosis,
+            escalation=escalation,
         )
         return {"primary": primary, "drained": drain_frames}
 

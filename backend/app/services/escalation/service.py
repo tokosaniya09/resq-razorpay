@@ -33,7 +33,7 @@ class Escalation:
     decision_event_id: str
     transaction_id: str
     body: str
-    generated_by: str          # "llm" or "template"
+    generated_by: str  # "llm" or "template"
 
 
 class EscalationService:

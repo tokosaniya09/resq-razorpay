@@ -52,10 +52,10 @@ class RouteState(str, Enum):
 class Action(str, Enum):
     """The bounded set of moves the policy engine may choose. Exactly one."""
 
-    RETRY = "RETRY"          # re-attempt via the gateway (soft failure, healthy route)
-    RECOVERY_LINK = "LINK"   # issue a fresh, bounded payment link (user-side failure)
-    HOLD = "HOLD"            # back off; route is degrading/down — protect the customer
-    STOP = "STOP"            # give up honestly (cap hit / unrecoverable)
+    RETRY = "RETRY"  # re-attempt via the gateway (soft failure, healthy route)
+    RECOVERY_LINK = "LINK"  # issue a fresh, bounded payment link (user-side failure)
+    HOLD = "HOLD"  # back off; route is degrading/down — protect the customer
+    STOP = "STOP"  # give up honestly (cap hit / unrecoverable)
 
 
 class OutcomeResult(str, Enum):
@@ -83,11 +83,11 @@ class PaymentEvent:
     event_id: str
     source: EventSource
     transaction_id: str
-    amount: int              # in paise (integer money — never floats)
+    amount: int  # in paise (integer money — never floats)
     currency: str
-    status: str              # e.g. "failed", "captured"
-    error_code: str | None   # gateway error code, drives classification
-    route: str               # acquirer / rail identifier, e.g. "UPI-HDFC"
+    status: str  # e.g. "failed", "captured"
+    error_code: str | None  # gateway error code, drives classification
+    route: str  # acquirer / rail identifier, e.g. "UPI-HDFC"
     received_at: datetime = field(default_factory=utcnow)
     raw_payload: dict[str, Any] = field(default_factory=dict)
 
@@ -97,7 +97,7 @@ class Classification:
     event_id: str
     failure_class: FailureClass
     is_soft: bool
-    mapped_reason: str        # human-readable, e.g. "Acquirer timeout"
+    mapped_reason: str  # human-readable, e.g. "Acquirer timeout"
 
 
 @dataclass(frozen=True)
@@ -105,8 +105,8 @@ class Decision:
     event_id: str
     transaction_id: str
     action: Action
-    rule_fired: str           # the exact rule id, for the audit trail
-    reason: str               # plain-language justification
+    rule_fired: str  # the exact rule id, for the audit trail
+    reason: str  # plain-language justification
     attempt_number: int
     idempotency_key: str
     route_state: RouteState
@@ -117,7 +117,7 @@ class Decision:
 class Outcome:
     decision_event_id: str
     result: OutcomeResult
-    amount_recovered: int     # paise
+    amount_recovered: int  # paise
     detail: str
     at: datetime = field(default_factory=utcnow)
 
@@ -125,7 +125,7 @@ class Outcome:
 @dataclass(frozen=True)
 class Outreach:
     decision_event_id: str
-    channel: str              # "simulated" for the hackathon build
+    channel: str  # "simulated" for the hackathon build
     body: str
-    generated_by: str         # "llm" or "template"
+    generated_by: str  # "llm" or "template"
     at: datetime = field(default_factory=utcnow)

@@ -28,7 +28,7 @@ from app.services.llm.client import LLMClient
 class OutreachContext:
     customer_first_name: str
     amount_rupees: str
-    reason_plain: str          # e.g. "insufficient balance"
+    reason_plain: str  # e.g. "insufficient balance"
     link_url: str | None
     ttl_minutes: int
 
