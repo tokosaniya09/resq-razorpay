@@ -33,6 +33,46 @@ class LLMClient:
     def enabled(self) -> bool:
         return self._s.llm_enabled and self._s.llm_provider != "template"
 
+    def diagnose(self) -> dict:
+        """Self-check for debugging: report config (without leaking the key)
+        and attempt one tiny real completion, returning the exact error if it
+        fails. Safe to expose on a local /api/llm-health endpoint."""
+        from app.core.config import _ENV_FILES
+
+        info = {
+            "llm_enabled": self._s.llm_enabled,
+            "provider": self._s.llm_provider,
+            "model": self._s.llm_model,
+            "api_key_set": bool(self._s.llm_api_key),
+            "enabled": self.enabled,
+            "env_files_checked": [
+                {"path": str(p), "exists": p.exists()} for p in _ENV_FILES
+            ],
+        }
+        if not self.enabled:
+            info["ok"] = False
+            info["reason"] = (
+                "LLM is off. Need LLM_ENABLED=true and a provider that isn't "
+                "'template'."
+            )
+            return info
+        try:
+            if self._s.llm_provider == "gemini":
+                sample = self._gemini("Reply with the single word: ok", "ping", 10)
+            elif self._s.llm_provider == "anthropic":
+                sample = self._anthropic("Reply with the single word: ok", "ping", 10)
+            else:
+                info["ok"] = False
+                info["reason"] = f"Unknown provider '{self._s.llm_provider}'."
+                return info
+            info["ok"] = True
+            info["sample"] = sample
+        except Exception as exc:  # noqa: BLE001
+            info["ok"] = False
+            info["error_type"] = exc.__class__.__name__
+            info["error"] = str(exc)
+        return info
+
     def complete(self, system: str, prompt: str, max_tokens: int = 200) -> str | None:
         """Return model text, or None on any failure. Never raises."""
         if not self.enabled:
@@ -66,7 +106,9 @@ class LLMClient:
         model = genai.GenerativeModel(
             model_name=self._s.llm_model,
             system_instruction=system,
-            generation_config={"max_output_tokens": max_tokens, "temperature": 0.5},
+            # Gemini 3.x Flash no longer supports custom temperature/top_p/top_k
+            # (they're ignored or rejected), so we only cap the output length.
+            generation_config={"max_output_tokens": max_tokens},
         )
         resp = model.generate_content(prompt)
         text = getattr(resp, "text", None)

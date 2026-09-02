@@ -130,3 +130,11 @@ def ask_ledger(payload: AskIn, request: Request):
         }
     finally:
         session.close()
+
+
+@router.get("/api/llm-health")
+def llm_health(request: Request):
+    """Diagnostic: is the LLM actually reachable? Open this in a browser
+    (http://localhost:8000/api/llm-health). Reports config (never the key) and
+    the exact error if a real call fails, so misconfiguration is obvious."""
+    return request.app.state.pipeline.llm.diagnose()

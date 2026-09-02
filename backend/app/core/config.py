@@ -13,13 +13,22 @@ rather than being hard-coded in the logic. Two reasons this matters:
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve .env by ABSOLUTE path so it loads no matter which directory uvicorn
+# is started from (a relative "env_file" is resolved against the current working
+# directory, which is a common cause of "my .env is ignored"). We look in the
+# backend folder and the repo root; if both exist, the backend one wins.
+_BACKEND_DIR = Path(__file__).resolve().parents[2]   # .../backend
+_REPO_ROOT = _BACKEND_DIR.parent                     # repo root
+_ENV_FILES = (_REPO_ROOT / ".env", _BACKEND_DIR / ".env")
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=_ENV_FILES, env_file_encoding="utf-8", extra="ignore"
     )
 
     # ---- App ----
@@ -52,7 +61,7 @@ class Settings(BaseSettings):
     llm_enabled: bool = False                  # off by default -> template fallback
     llm_provider: str = "gemini"               # "template" | "gemini" | "anthropic"
     llm_api_key: str | None = None
-    llm_model: str = "gemini-2.0-flash"        # free tier via Google AI Studio
+    llm_model: str = "gemini-3.6-flash"        # free tier via Google AI Studio
     # "en" = template only (no LLM); set e.g. "Hinglish" to translate via LLM
     outreach_language: str = "en"
 
